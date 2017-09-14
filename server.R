@@ -1,19 +1,29 @@
 library(shiny)
 library(ggplot2)
+library(lattice)
 
 mydata1 <- NULL
 mydata2 <- NULL
 
 #***************************************************************************
-#Read the file 
+#Read the file
 #***************************************************************************
 datasetInput0 <- reactive({ 
   fileInput('file1', 'Select the xxx.txt file',
             accept=c('text/plain','text/comma-separated-values,text/plain','.txt'))
   
+  
+  
 })
 
+createLink <- function(val) {
+  sprintf('<a href="https://www.google.com/#q=%s" target="_blank" class="btn btn-primary">Info</a>',val)
+  
+}
+
+
 function(input, output) {
+  
   
   output$input_options0 <- renderUI({
     
@@ -22,7 +32,7 @@ function(input, output) {
   })
   
 #***************************************************************************
-#Get the color for the positive values in the bar graph
+#Get the color for the positive Value in the bar graph
 #***************************************************************************
   DatasetInput_PositiveColor <- reactive({ 
     
@@ -54,8 +64,10 @@ function(input, output) {
                 "Choose a color for Positive logFC in the Bar Plot:",
                 list(`Colors` = c("blue", "lightgreen", "yellow", "purple")
                 ),
-                selected = "lightgreen"
+                selected = "blue"
     )
+    
+    
     
   })
   
@@ -73,7 +85,6 @@ function(input, output) {
   DatasetInput_NegativeColor <- reactive({ 
 #***************************************************************************
 #Read the Filehanlde
-#NOTE: UI uses a browser to select the file
 #***************************************************************************
     file1 = input$file1
     
@@ -99,7 +110,7 @@ function(input, output) {
                 "Choose a color for Negative logFC in the Bar Plot:",
                 list(`Colors` = c("blue", "lightgreen", "yellow", "purple")
                 ),
-                selected = "blue"
+                selected = "yellow"
                 
     )
     
@@ -113,7 +124,6 @@ function(input, output) {
     
     
   })
-  
 #***************************************************************************
 #Get Minimum Value LogFC
 #***************************************************************************
@@ -121,7 +131,6 @@ function(input, output) {
     
 #***************************************************************************
 #Read the Filehanlde
-#NOTE: UI uses a browser to select the file
 #***************************************************************************
     file1 = input$file1
     
@@ -161,18 +170,26 @@ function(input, output) {
   })
   
 #***************************************************************************
-#Get the max adj. P value
+#Get Max Value p Value
 #***************************************************************************
   DatasetInput_pvalue1 <- reactive({ 
     
-
+#***************************************************************************
+#Read the Filehanlde
+#NOTE: UI uses a browser to select the file
+#***************************************************************************
     file1 = input$file1
     
+#***************************************************************************
+#if the File handle is NULL, exit
+#***************************************************************************
     
     if (is.null(file1)) {
       return(NULL)
     }
-
+#***************************************************************************
+#Read Table in the file to a variable
+#***************************************************************************
     mydata1 <- read.table(file1$datapath, header=TRUE)
     
 #***************************************************************************
@@ -184,9 +201,9 @@ function(input, output) {
     selectInput(
       inputId = "pvalue_max",
       label = h4("Select max P.Value:"), 
-      choices =  seq(min(mydata2[,5]), by = 0.001),
+      choices =  seq(min(mydata2[,4]), by = 0.001),
       #selected = max(mydata2[,4])
-      selected = 0.999 
+      selected = 0.999 #not sure why max above is working. FIXME.
     )
     
   })
@@ -227,6 +244,8 @@ function(input, output) {
 #Sort Table based on logFC column
 #***************************************************************************
     mydata2 <- mydata1[order(mydata1$logFC),]
+    
+    
     
     selectInput(
       inputId = "max",
@@ -271,7 +290,7 @@ function(input, output) {
     mydata2 <- mydata1[order(mydata1$logFC),]
     
     conditionalPanel(
-      TRUE,
+      'input.dataset === "mydata2"',
       checkboxGroupInput('show_vars', 'Columns in mydata to show:',
                          names(mydata2), selected = names(mydata2))
     )
@@ -320,6 +339,9 @@ function(input, output) {
     return(mydata2)
   })
   
+  
+  
+  
 #***************************************************************************
 # create a subset of data within the min and max value range
 #***************************************************************************
@@ -340,38 +362,141 @@ function(input, output) {
 #Generate a table for display
 #***************************************************************************
   
-  output$GeneTable_logFC <- DT::renderDataTable(
+  output$GeneTable_logFC <- renderDataTable(
     {
       
       mydata <- subset_on_ragne_logFC()
+      if(!is.null(mydata)){
+        mydata$Gene <- createLink(mydata$Gene)
+      }
       
-      DT::datatable(mydata[, input$show_vars, drop = FALSE])
       
+      return(mydata)
       
-    })
+    }, escape = FALSE)
+  
   
 #***************************************************************************
-#Generate a Bar Graph focused on logFC Column.
+#Generate a Bar Graph focused on logFC Column but zoom in function
 #***************************************************************************
-  output$GeneBarGraph_logFC <- renderPlot({ 
+  output$GeneBarGraph_logFC_zoom <- renderPlot({ 
     
+#*************************************************************************
+#create a subset of data based on the min and max values for logFC 
+#*************************************************************************
     mydata <- subset_on_ragne_logFC()
-
+#*************************************************************************
+#select min and max logFC values based on brush
+#*************************************************************************
+    if(is.null(input$plot_brush$xmin)){
+      my_min <- as.numeric(input$min) 
+    } else {
+      my_min <- input$plot_brush$xmin
+    }
+    
+    if(is.null(input$plot_brush$xmax)){
+      my_max <- as.numeric(input$max) 
+    } else {
+      my_max <- input$plot_brush$xmax
+    }
+#*************************************************************************
+#Create a new table based on min and max x values as determined by the brush
+#*************************************************************************    
+    mydata1 <- subset(mydata,
+                      (mydata$logFC >= my_min & 
+                         (mydata$logFC <= my_max ))
+    )
+    
+    
+    
 #***************************************************************************
 #plot the bargraph with different colors for positive and negative values
 #***************************************************************************
-    #cols <- c("blue", "lightgreen")[(mydata[,2] > 0) +1 ]
-    cols <- c(input$NegativeColor, input$PositiveColor)[(mydata[,2] > 0) +1 ]
-    barplot(
-      mydata[,"logFC"],
-      main = "logFC barplot",
-      ylab="genes", 
-      xlab= "data",
-      cols = cols,
-      border = cols,
-      horiz = TRUE
-    )
     
+    cols <- c(input$NegativeColor, input$PositiveColor)[(mydata[,2] > 0) +1 ]
+    
+    if(!is.null(mydata1)){
+      barplot(
+        mydata1[,"logFC"],
+        main = "logFC barplot",
+        ylab="genes", 
+        xlab= "data",
+        cols = cols,
+        border = cols,
+        horiz = TRUE
+      )
+    } 
+    
+  })
+  
+  
+  
+  
+#***************************************************************************
+#Generate a Volcano Graph focused on logFC Column.
+#***************************************************************************
+  output$GeneVolcanoGraph_logFC <- renderPlot({ 
+    
+    mydata <- subset_on_ragne_logFC()
+    
+    xyplot(-log10(mydata[,4]) ~ mydata[,2])
+    
+    
+    
+  })
+  
+  
+  
+
+#***************************************************************************
+  GeneTable_Export <- reactive({
+    mydata <- subset_on_ragne_logFC()
+    return (mydata[, input$show_vars, drop = FALSE])
+    
+  })
+#***************************************************************************
+# downloadHandler() takes two arguments, both functions.
+# The content function is passed a filename as an argument, and
+#   it should write out data to that filename.
+#***************************************************************************
+  output$downloadData <- downloadHandler(
+    
+  
+    filename = function() {
+      paste("export_data", input$filetype, sep = ".")
+    },
+    
+    # This function should write data to a file given to it by
+    # the argument 'file'.
+    content = function(file) {
+      sep <- switch(input$filetype, "csv" = ",", "tsv" = "\t")
+      
+      
+      # Write to a file specified by the 'file' argument
+      write.table(GeneTable_Export(), file, sep = sep,
+                  row.names = FALSE)
+    }
+  )
+  
+  
+  
+  output$info <- renderText({
+    xy_str <- function(e) {
+      if(is.null(e)) return("NULL\n")
+      paste0("x=", round(e$x, 1), " y=", round(e$y, 1), "\n")
+    }
+    xy_range_str <- function(e) {
+      if(is.null(e)) return("NULL\n")
+      paste0("xmin=", round(e$xmin, 1), " xmax=", round(e$xmax, 1), 
+             " ymin=", round(e$ymin, 1), " ymax=", round(e$ymax, 1))
+    }
+    
+    paste0(
+      "click: ", xy_str(input$plot_click),
+      "dblclick: ", xy_str(input$plot_dblclick),
+      "hover: ", xy_str(input$plot_hover),
+      "brush: ", xy_range_str(input$plot_brush)
+    )
   })
   
 }
