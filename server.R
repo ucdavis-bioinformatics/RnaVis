@@ -10,7 +10,7 @@ mydata1 <- NULL
 mydata2 <- NULL
 
 #***************************************************************************
-#Read GeneTable into file handle fh_gene_table
+#Read FIle GeneTable into file handle fh_gene_table
 #***************************************************************************
 read_genetable_file <- reactive({ 
   fileInput('fh_gene_table', 'Select the Gene Table source (xxx.txt) file',
@@ -33,7 +33,7 @@ read_frog_table <- reactive({
 
 createLink <- function(val) {
   
-  sprintf('<a href="https://www.google.com/#q=%s" target="_blank" class="btn btn-primary">%s</a>',val, val)
+  sprintf('<a href="https://uswest.ensembl.org/Multi/Search/Results?q=%s;site=ensembl" target="_blank" class="btn btn-primary">%s</a>',val, val)
   
 }
 
@@ -406,7 +406,7 @@ function(input, output) {
     mydata1 <- read.table(fh_gene_table$datapath, header=TRUE)
     
     #***************************************************************************
-    #Sort Table based on P.Value column
+    #Sort Table based on adj  P.Value column
     #***************************************************************************
     mydata2 <- mydata1[order(mydata1$P.Value),]
     
