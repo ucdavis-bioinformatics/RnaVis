@@ -34,4 +34,4 @@ Features:
   
 The app will allow the user to download the filtered data table/any visualizions they create in differernt formats. 
   
-  
+Download RStudio here: https://www.rstudio.com/products/rstudio/download/#download
