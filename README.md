@@ -34,9 +34,6 @@ The purpose of this app is to allow filter and visualize data. After receiveing 
   
 The app will allow the user to download the filtered data table/any visualizions they create in differernt formats. 
   
-Download RStudio here: https://www.rstudio.com/products/rstudio/download/#download
-
-
 # Instructions
 
 
@@ -82,6 +79,32 @@ Click on gene name to look it up - choose search engine in drop down box on the 
 6. You may add an expressions table - which will be filtered alongside the original gene table.
    NOTE: this expressions table will also create a line graph with a legend on the right hand side
    
-7.  You may download and filtered data table or graph in different formats using the buttons on the left hand side menu:\
+7.  You may download and filtered data table or graph in different formats using the buttons on the left hand side menu:
+
+
+# Installation 
+
+1. Download RStudio here: https://www.rstudio.com/products/rstudio/download/#download
+
+2. Open a shiny project in R studio which contains a server and UI page
+
+3. Go to RNAvis repository on Github (linked at the top of the page)
+
+4. Copy and paste the server and UI code into Rstudio - You will have to install all shiny packages in the console. 
+   Use the function - install.packages("") 
+   
+   Packages are listed at the top of server and UI code as : 
+   
+   
+   
+library(shiny)
+library(ggplot2)
+library(lattice)
+library(RColorBrewer)
+library(plotly)
+library(manhattanly)
+   
+
+5. Run App
 
 
